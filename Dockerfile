@@ -3,10 +3,12 @@ LABEL GeoNode development team
 
 RUN mkdir -p /usr/src/{{project_name}}
 
-RUN apt-get update -y && apt-get install curl wget unzip gnupg2 locales -y
+# Instala pacotes básicos e também as dependências para compilar o PROJ
+RUN apt-get update -y && apt-get install -y \
+    curl wget unzip gnupg2 locales build-essential cmake sqlite3 libsqlite3-dev
 
-RUN sed -i -e 's/# C.UTF-8 UTF-8/C.UTF-8 UTF-8/' /etc/locale.gen && \
-    locale-gen
+# Configura locale
+RUN sed -i -e 's/# C.UTF-8 UTF-8/C.UTF-8 UTF-8/' /etc/locale.gen && locale-gen
 ENV LC_ALL C.UTF-8
 ENV LANG C.UTF-8
 
@@ -19,6 +21,22 @@ WORKDIR /usr/src/{{project_name}}
 #RUN crontab /etc/cron.d/monitoring-cron
 #RUN touch /var/log/cron.log
 #RUN service cron start
+
+# --- Atualização do PROJ para 9.5.0 ---
+# Cria uma pasta temporária, baixa, compila e instala o PROJ no /usr/local
+# --- Atualização do PROJ para 9.5.0 ---
+    RUN mkdir -p /tmp/proj_build && cd /tmp/proj_build && \
+    wget https://download.osgeo.org/proj/proj-9.5.0.tar.gz && \
+    tar -xzf proj-9.5.0.tar.gz && cd proj-9.5.0 && \
+    mkdir build && cd build && \
+    cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local && \
+    make -j"$(nproc)" && \
+    make install && \
+    ldconfig && \
+    rm -rf /tmp/proj_build
+
+# Define o caminho dos dados do PROJ para que o pyproj os encontre
+ENV PROJ_LIB=/usr/local/share/proj
 
 COPY src/wait-for-databases.sh /usr/bin/wait-for-databases
 RUN chmod +x /usr/bin/wait-for-databases
@@ -39,6 +57,10 @@ RUN chmod +x /usr/bin/celery-cmd
 
 RUN yes w | pip install --src /usr/src -r requirements.txt &&\
     yes w | pip install -e .
+
+# --- Força a reinstalação do pyproj para a versão 3.6.1 mesma versão do original---
+RUN pip uninstall -y pyproj || true && \
+    pip install --force-reinstall --no-binary :all: "pyproj<3.7.0"
 
 # Cleanup apt update lists
 RUN apt-get autoremove --purge &&\

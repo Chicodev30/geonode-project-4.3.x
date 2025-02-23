@@ -54,7 +54,12 @@ WSGI_APPLICATION = "{}.wsgi.application".format(PROJECT_NAME)
 
 # Language code for this installation. All choices can be found here:
 # http://www.i18nguy.com/unicode/language-identifiers.html
-LANGUAGE_CODE = os.getenv("LANGUAGE_CODE", "en")
+LANGUAGE_CODE = os.getenv("LANGUAGE_CODE", "pt-br")
+
+LANGUAGES = [
+    ('pt-br', 'Português (Brasil)'),
+    ('en', 'English'),
+]
 
 if PROJECT_NAME not in INSTALLED_APPS:
     INSTALLED_APPS += (PROJECT_NAME,)
@@ -79,6 +84,15 @@ loaders = TEMPLATES[0]["OPTIONS"].get("loaders") or [
 # loaders.insert(0, 'apptemplates.Loader')
 TEMPLATES[0]["OPTIONS"]["loaders"] = loaders
 TEMPLATES[0].pop("APP_DIRS", None)
+
+MAPSTORE_PROJECTION_DEFS = [
+{
+    "code": "EPSG:10665",
+    "def": "+proj=tmerc +lat_0=0 +lon_0=-51 +k=0.999995 +x_0=300000 +y_0=5000000 +ellps=GRS80 +units=m +no_defs",
+    "extent": [-20037508.34, -20048966.1, 20037508.34, 20048966.1],
+    "worldExtent": [-180.0, -85.06, 180.0, 85.06]
+}
+]
 
 LOGGING = {
     "version": 1,
